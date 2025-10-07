@@ -36,6 +36,18 @@ function getTemperatureColor(temp, minTemp, maxTemp) {
 function CastingMesh({ mesh, temperatureData, material, isVoxelMesh = false }) {
   const meshRef = useRef();
   
+  // For voxel mesh, we want wireframe + flat shading to show blocky structure
+  const materialProps = isVoxelMesh ? {
+    flatShading: true,
+    wireframe: false,
+    metalness: 0.1,
+    roughness: 0.9
+  } : {
+    flatShading: false,
+    metalness: 0.3,
+    roughness: 0.6
+  };
+  
   // Debug logging
   useEffect(() => {
     console.log('🔍 CastingMesh received:', {
@@ -187,9 +199,7 @@ function CastingMesh({ mesh, temperatureData, material, isVoxelMesh = false }) {
       <meshStandardMaterial
         vertexColors
         side={THREE.DoubleSide}
-        metalness={0.3}
-        roughness={0.6}
-        flatShading={isVoxelMesh}
+        {...materialProps}
       />
     </mesh>
   );
