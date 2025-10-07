@@ -20,3 +20,35 @@ code {
     monospace;
 }
 
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Better focus styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #1a3a5c;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+button, input, select {
+  transition: all 0.2s ease;
+}
+

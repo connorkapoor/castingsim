@@ -1,216 +1,206 @@
 import React, { useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import './Viewer3D.css';
 
-function TemperatureColorMap(temperature, minTemp, maxTemp, meltingPoint) {
-  const denom = Math.max(maxTemp - minTemp, 1e-6);
-  let t = (temperature - minTemp) / denom;
-  if (!Number.isFinite(t)) t = 0.5;
-  t = Math.min(1, Math.max(0, t));
+/**
+ * Professional temperature color mapping
+ * Maps temperature to color gradient: blue (cold) -> red (hot)
+ */
+function getTemperatureColor(temp, minTemp, maxTemp) {
+  const t = Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
   
-  // Color gradient: blue (cold) -> cyan -> green -> yellow -> orange -> red (hot)
-  let color;
-  
+  // Enhanced gradient: blue -> cyan -> green -> yellow -> orange -> red
   if (t < 0.2) {
-    // Blue to Cyan
-    const localT = t / 0.2;
-    color = new THREE.Color().setRGB(0, localT, 1);
+    const s = t / 0.2;
+    return new THREE.Color(0, s, 1);  // Blue to Cyan
   } else if (t < 0.4) {
-    // Cyan to Green
-    const localT = (t - 0.2) / 0.2;
-    color = new THREE.Color().setRGB(0, 1, 1 - localT);
+    const s = (t - 0.2) / 0.2;
+    return new THREE.Color(0, 1, 1 - s);  // Cyan to Green
   } else if (t < 0.6) {
-    // Green to Yellow
-    const localT = (t - 0.4) / 0.2;
-    color = new THREE.Color().setRGB(localT, 1, 0);
+    const s = (t - 0.4) / 0.2;
+    return new THREE.Color(s, 1, 0);  // Green to Yellow
   } else if (t < 0.8) {
-    // Yellow to Orange
-    const localT = (t - 0.6) / 0.2;
-    color = new THREE.Color().setRGB(1, 1 - 0.5 * localT, 0);
+    const s = (t - 0.6) / 0.2;
+    return new THREE.Color(1, 1 - 0.5 * s, 0);  // Yellow to Orange
   } else {
-    // Orange to Red
-    const localT = (t - 0.8) / 0.2;
-    color = new THREE.Color().setRGB(1, 0.5 - 0.5 * localT, 0);
+    const s = (t - 0.8) / 0.2;
+    return new THREE.Color(1, 0.5 - 0.5 * s, 0);  // Orange to Red
   }
-  
-  return color;
 }
 
-function CastingMesh({ mesh, temperatureData, hotspotNodes, material }) {
+/**
+ * Main casting mesh component with temperature visualization
+ */
+function CastingMesh({ mesh, temperatureData, material, isVoxelMesh = false }) {
   const meshRef = useRef();
   
-  // No auto-rotation
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 CastingMesh received:', {
+      hasMesh: !!mesh,
+      nodes: mesh?.nodes?.length,
+      elements: mesh?.elements?.length,
+      surfaceTriangles: mesh?.surface_triangles?.length,
+      hasTemperatureData: !!temperatureData,
+      tempDataLength: temperatureData?.length,
+      tempSample: temperatureData?.slice(0, 5)
+    });
+  }, [mesh, temperatureData]);
   
+  // Create geometry from mesh
   const geometry = useMemo(() => {
+    if (!mesh || !mesh.nodes) {
+      console.warn('❌ No mesh data available');
+      return null;
+    }
+    
+    console.log('📐 Creating geometry...');
     const geo = new THREE.BufferGeometry();
     
+    // Set vertices (convert from array of arrays to flat array)
     const vertices = new Float32Array(mesh.nodes.flat());
     geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    console.log(`  ✓ Vertices: ${vertices.length / 3} points`);
     
-    // Use surface triangles for faces
-    const indices = new Uint32Array(mesh.surface_triangles.flat());
-    geo.setIndex(new THREE.BufferAttribute(indices, 1));
-    
-    geo.computeVertexNormals();
-    // Center geometry at origin to ensure it's in view
-    geo.computeBoundingBox();
-    if (geo.boundingBox) {
-      const center = new THREE.Vector3();
-      geo.boundingBox.getCenter(center);
-      geo.translate(-center.x, -center.y, -center.z);
+    // Set indices (surface triangles for rendering)
+    const triangles = mesh.triangles || mesh.surface_triangles;
+    if (triangles && triangles.length > 0) {
+      const indices = new Uint32Array(triangles.flat());
+      geo.setIndex(new THREE.BufferAttribute(indices, 1));
+      console.log(`  ✓ Surface triangles: ${triangles.length} triangles`);
+    } else if (mesh.elements) {
+      // Fallback: use tetrahedra faces
+      const faces = [];
+      for (const tet of mesh.elements) {
+        faces.push(tet[0], tet[1], tet[2]);
+        faces.push(tet[0], tet[1], tet[3]);
+        faces.push(tet[0], tet[2], tet[3]);
+        faces.push(tet[1], tet[2], tet[3]);
+      }
+      geo.setIndex(faces);
+      console.log(`  ✓ Tetrahedral faces: ${faces.length / 3} triangles`);
     }
+    
+    // Compute normals for smooth shading
+    geo.computeVertexNormals();
+    
+    // Ensure normals are valid
+    if (!geo.attributes.normal || geo.attributes.normal.count !== geo.attributes.position.count) {
+      console.warn('⚠️ Normal computation issue, using flat shading');
+      geo.deleteAttribute('normal');
+    }
+    
+    // Center and scale geometry
+    geo.computeBoundingBox();
+    const center = new THREE.Vector3();
+    geo.boundingBox.getCenter(center);
+    geo.translate(-center.x, -center.y, -center.z);
+    
+    const size = new THREE.Vector3();
+    geo.boundingBox.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 50 / maxDim;
+    geo.scale(scale, scale, scale);
+    
+    console.log(`  ✓ Geometry centered and scaled by ${scale.toFixed(3)}`);
+    console.log(`  ✓ Bounding box size: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)} mm`);
     
     return geo;
   }, [mesh]);
   
+  // Calculate vertex colors based on temperature
   const colors = useMemo(() => {
-    if (!temperatureData || temperatureData.length === 0) return null;
-    
-    let minTemp = Math.min(...temperatureData);
-    let maxTemp = Math.max(...temperatureData);
-    const meltingPoint = material?.melting_point || 660;
-    // Ensure a minimum visible range around melting point
-    const pad = 150; // °C
-    minTemp = Math.min(minTemp, meltingPoint - pad);
-    maxTemp = Math.max(maxTemp, meltingPoint + pad);
-    if (maxTemp - minTemp < 10) {
-      minTemp -= 5;
-      maxTemp += 5;
+    if (!geometry) {
+      console.warn('❌ No geometry for colors');
+      return new Float32Array(0);
     }
     
-    const colorArray = new Float32Array(mesh.nodes.length * 3);
+    const vertexCount = geometry.attributes.position.count;
     
-    for (let i = 0; i < mesh.nodes.length; i++) {
-      const temp = temperatureData[i];
-      const color = TemperatureColorMap(temp, minTemp, maxTemp, meltingPoint);
-      colorArray[i * 3] = color.r;
-      colorArray[i * 3 + 1] = color.g;
-      colorArray[i * 3 + 2] = color.b;
+    if (!temperatureData || temperatureData.length === 0) {
+      // Default: show hot orange/red colors to indicate no temperature data
+      console.log(`🎨 Using default colors (no temperature data) for ${vertexCount} vertices`);
+      const defaultColors = new Float32Array(vertexCount * 3);
+      for (let i = 0; i < vertexCount; i++) {
+        defaultColors[i * 3] = 1.0;     // R
+        defaultColors[i * 3 + 1] = 0.5; // G
+        defaultColors[i * 3 + 2] = 0.0; // B
+      }
+      return defaultColors;
     }
     
-    return colorArray;
-  }, [temperatureData, mesh.nodes.length, material]);
+    const tempArray = temperatureData;
+    
+    // Check if temperature data matches vertex count
+    if (tempArray.length !== vertexCount) {
+      console.warn(`⚠️  Temperature data size mismatch: ${tempArray.length} temps vs ${vertexCount} vertices`);
+      console.log(`🎨 Using default colors (size mismatch)`);
+      const defaultColors = new Float32Array(vertexCount * 3);
+      for (let i = 0; i < vertexCount; i++) {
+        defaultColors[i * 3] = 0.7;     // R
+        defaultColors[i * 3 + 1] = 0.7; // G
+        defaultColors[i * 3 + 2] = 0.7; // B (gray for no data)
+      }
+      return defaultColors;
+    }
+    
+    // Get temperature range
+    const minTemp = Math.min(...tempArray);
+    const maxTemp = Math.max(...tempArray);
+    
+    console.log(`🌡️  Temperature range: ${minTemp.toFixed(1)}°C - ${maxTemp.toFixed(1)}°C`);
+    console.log(`🎨 Applying temperature colors to ${vertexCount} vertices`);
+    
+    const colors = new Float32Array(vertexCount * 3);
+    
+    for (let i = 0; i < vertexCount; i++) {
+      const temp = tempArray[i] || minTemp;
+      const color = getTemperatureColor(temp, minTemp, maxTemp);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+    
+    return colors;
+  }, [geometry, temperatureData]);
   
-  // Update colors on geometry reliably each frame
+  // Update colors on geometry
   useEffect(() => {
-    if (!geometry || !colors) return;
-    if (geometry.getAttribute('color')) {
-      geometry.attributes.color.array = colors;
-      geometry.attributes.color.needsUpdate = true;
-    } else {
+    if (geometry && colors.length > 0) {
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.attributes.color.needsUpdate = true;
+      console.log('✅ Colors applied to geometry');
     }
   }, [geometry, colors]);
   
-  // Hotspot markers
-  const hotspotMarkers = useMemo(() => {
-    if (!hotspotNodes || hotspotNodes.length === 0) return null;
-    
-    return hotspotNodes.map(nodeIdx => {
-      const pos = mesh.nodes[nodeIdx];
-      return (
-        <mesh key={nodeIdx} position={pos}>
-          <sphereGeometry args={[1.5, 8, 8]} />
-          <meshBasicMaterial color="#ff0000" transparent opacity={0.6} />
-        </mesh>
-      );
-    });
-  }, [hotspotNodes, mesh.nodes]);
+  if (!geometry) {
+    console.warn('⚠️  CastingMesh rendering null (no geometry)');
+    return null;
+  }
+  
+  console.log('✅ CastingMesh rendering mesh');
   
   return (
-    <group ref={meshRef}>
-      <mesh geometry={geometry}>
-        <meshStandardMaterial
-          vertexColors
-          toneMapped={false}
-          metalness={0.2}
-          roughness={0.6}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-      
-      {/* Show clear part boundary with edge detection */}
-      <mesh geometry={geometry}>
-        <meshBasicMaterial 
-          color="#000000" 
-          wireframe={true}
-          opacity={0.4}
-          transparent
-        />
-      </mesh>
-      {hotspotMarkers}
-    </group>
+    <mesh ref={meshRef} geometry={geometry}>
+      <meshStandardMaterial
+        vertexColors
+        side={THREE.DoubleSide}
+        metalness={0.3}
+        roughness={0.6}
+        flatShading={isVoxelMesh}
+      />
+    </mesh>
   );
 }
 
-function DefectMarkers({ hotspotNodes, porosityNodes, nodes }) {
-  // Show top 10 hotspots with labels
-  const hotspots = (hotspotNodes || []).slice(0, 50).map((nodeIdx, i) => {
-    const pos = nodes[nodeIdx];
+/**
+ * Temperature legend component
+ */
+function TemperatureLegend({ temperatureData, material }) {
+  if (!temperatureData || temperatureData.length === 0) {
     return (
-      <group key={`hotspot-${nodeIdx}`} position={pos}>
-        <mesh>
-          <sphereGeometry args={[1.5, 12, 12]} />
-          <meshBasicMaterial color="#ff0000" transparent opacity={0.8} />
-        </mesh>
-      </group>
-    );
-  });
-  
-  // Show top 10 porosity zones with labels
-  const porosity = (porosityNodes || []).slice(0, 50).map((nodeIdx, i) => {
-    const pos = nodes[nodeIdx];
-    return (
-      <group key={`porosity-${nodeIdx}`} position={pos}>
-        <mesh>
-          <sphereGeometry args={[1.5, 12, 12]} />
-          <meshBasicMaterial color="#ffcc00" transparent opacity={0.8} />
-        </mesh>
-      </group>
-    );
-  });
-  
-  return (
-    <>
-      {hotspots}
-      {porosity}
-    </>
-  );
-}
-
-function Viewer3D({ mesh, temperatureData, hotspotNodes, porosityNodes, material }) {
-  if (!mesh) return null;
-  
-  return (
-    <div className="viewer3d">
-      <Canvas camera={{ position: [100, 100, 100], fov: 50 }}>
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
-        <directionalLight position={[-10, -10, -5]} intensity={0.5} />
-        
-        <CastingMesh
-          mesh={mesh}
-          temperatureData={temperatureData}
-          hotspotNodes={hotspotNodes}
-          material={material}
-        />
-        
-        <DefectMarkers 
-          hotspotNodes={hotspotNodes}
-          porosityNodes={porosityNodes}
-          nodes={mesh.nodes}
-        />
-        
-        <OrbitControls />
-        
-        <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
-          <GizmoViewport labelColor="white" axisHeadScale={1} />
-        </GizmoHelper>
-        
-      </Canvas>
-      
       <div className="color-legend">
         <div className="legend-title">Temperature</div>
         <div className="legend-gradient"></div>
@@ -218,22 +208,120 @@ function Viewer3D({ mesh, temperatureData, hotspotNodes, porosityNodes, material
           <span>Cold</span>
           <span>Hot</span>
         </div>
+        <div style={{ fontSize: '11px', color: '#999', marginTop: '5px' }}>
+          No temperature data yet
+        </div>
       </div>
+    );
+  }
+  
+  const minTemp = Math.min(...temperatureData);
+  const maxTemp = Math.max(...temperatureData);
+  
+  return (
+    <div className="color-legend">
+      <div className="legend-title">Temperature Distribution</div>
+      <div className="legend-gradient"></div>
+      <div className="legend-labels">
+        <span>{minTemp.toFixed(0)}°C</span>
+        <span>{maxTemp.toFixed(0)}°C</span>
+      </div>
+      {material && (
+        <div className="legend-info">
+          <div>Melting: {material.melting_point}°C</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Main 3D viewer component
+ */
+function Viewer3D({ mesh, temperatureData, material, isVoxelMesh = false }) {
+  // Debug logging
+  useEffect(() => {
+    console.log('🖥️  Viewer3D render:', {
+      hasMesh: !!mesh,
+      hasTemperatureData: !!temperatureData,
+      hasMaterial: !!material
+    });
+  }, [mesh, temperatureData, material]);
+  
+  if (!mesh) {
+    console.log('⚠️  Viewer3D: No mesh, showing placeholder');
+    return (
+      <div className="viewer3d">
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          color: '#666',
+          fontSize: '18px',
+          textAlign: 'center',
+          padding: '20px',
+          background: 'rgba(255,255,255,0.9)',
+          borderRadius: '8px'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>📦</div>
+          <div><strong>No geometry loaded</strong></div>
+          <div style={{ fontSize: '14px', marginTop: '10px', color: '#999' }}>
+            Upload an STL or STEP file to begin
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  console.log('✅ Viewer3D rendering Canvas with mesh');
+  
+  return (
+    <div className="viewer3d">
+      <Canvas camera={{ position: [80, 80, 80], fov: 50 }}>
+        {/* Lighting */}
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={1.0} />
+        <directionalLight position={[-10, -10, -5]} intensity={0.5} />
+        <pointLight position={[0, 50, 0]} intensity={0.3} />
+        
+        {/* Casting mesh */}
+        <CastingMesh 
+          mesh={mesh}
+          temperatureData={temperatureData}
+          material={material}
+          isVoxelMesh={isVoxelMesh}
+        />
+        
+        {/* Controls */}
+        <OrbitControls 
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+        />
+      </Canvas>
       
-      <div className="defect-legend">
-        <h4>Defect Indicators</h4>
-        <div className="defect-item">
-          <div className="defect-marker hotspot"></div>
-          <span>Hotspots (Last to solidify)</span>
-        </div>
-        <div className="defect-item">
-          <div className="defect-marker porosity"></div>
-          <span>Porosity Risk (Niyama)</span>
-        </div>
+      {/* Legend */}
+      <TemperatureLegend temperatureData={temperatureData} material={material} />
+      
+      {/* Debug info overlay */}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
+        background: 'rgba(0,0,0,0.7)',
+        color: 'white',
+        padding: '8px 12px',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontFamily: 'monospace'
+      }}>
+        <div>Nodes: {mesh?.nodes?.length || 0}</div>
+        <div>Triangles: {mesh?.surface_triangles?.length || 0}</div>
+        <div>Temp data: {temperatureData?.length || 0}</div>
       </div>
     </div>
   );
 }
 
 export default Viewer3D;
-

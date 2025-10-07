@@ -49,18 +49,51 @@ class ProfessionalSolidificationSolver:
     }
     
     def __init__(self, mesh_data, material='aluminum', initial_temp=700, ambient_temp=25):
+        # Validate material
+        if material not in self.MATERIALS:
+            raise ValueError(f"Unknown material: {material}. Available: {list(self.MATERIALS.keys())}")
+        
         self.mesh = mesh_data
         self.material = self.MATERIALS[material]
         self.material_name = material
         self.T_init = initial_temp
         self.T_ambient = ambient_temp
         
+        # Validate temperatures
+        Tl = self.material['liquidus']
+        Ts = self.material['solidus']
+        
+        if initial_temp < Ts:
+            raise ValueError(f"Initial temperature ({initial_temp}°C) below solidus ({Ts}°C)")
+        
+        if ambient_temp >= initial_temp:
+            raise ValueError(f"Ambient temperature ({ambient_temp}°C) must be below initial temperature ({initial_temp}°C)")
+        
+        if ambient_temp < 0:
+            raise ValueError(f"Ambient temperature ({ambient_temp}°C) below absolute zero")
+        
+        # Validate mesh data
+        if not mesh_data or 'nodes' not in mesh_data or 'elements' not in mesh_data:
+            raise ValueError("Invalid mesh data: missing nodes or elements")
+        
         self.nodes = np.array(mesh_data['nodes'])
         self.elements = mesh_data['elements']
-        self.boundary = set(mesh_data['boundary_nodes'])
+        self.boundary = set(mesh_data.get('boundary_nodes', []))
         
         self.n_nodes = len(self.nodes)
         self.n_elems = len(self.elements)
+        
+        if self.n_nodes == 0:
+            raise ValueError("Mesh has no nodes")
+        if self.n_elems == 0:
+            raise ValueError("Mesh has no elements")
+        
+        if self.n_nodes < 4:
+            raise ValueError(f"Mesh too small: {self.n_nodes} nodes (minimum 4)")
+        
+        print(f"✓ Solver initialized: {self.n_nodes} nodes, {self.n_elems} elements")
+        print(f"✓ Material: {self.material['name']}")
+        print(f"✓ Temperature range: {initial_temp}°C → {ambient_temp}°C")
         
         # State variables
         self.T = np.full(self.n_nodes, initial_temp, dtype=float)

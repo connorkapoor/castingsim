@@ -32,3 +32,25 @@ backend/uploads/*
 # Docker
 *.pid
 
+# Test/Debug files
+*_old.*
+*_clean.*
+*_v2.*
+*_fixed.*
+test_*.stl
+test_*.h5
+test_*.xdmf
+test_*.html
+test_*.py
+debug_*.stl
+debug_*.h5
+debug_*.xdmf
+debug_*.png
+comparison_*.stl
+comparison_*.h5
+comparison_*.xdmf
+comparison_*.png
+backend/test_output*/
+backend/visualize_*.py
+backend/compare_*.py
+

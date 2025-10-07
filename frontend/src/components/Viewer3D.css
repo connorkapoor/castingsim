@@ -2,6 +2,9 @@
   width: 100%;
   height: 100%;
   position: relative;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .color-legend {
@@ -47,6 +50,18 @@
   color: #6c757d;
 }
 
+.legend-info {
+  margin-top: 0.5rem;
+  font-size: 0.65rem;
+  color: #495057;
+  border-top: 1px solid #dee2e6;
+  padding-top: 0.5rem;
+}
+
+.legend-info div {
+  margin: 0.2rem 0;
+}
+
 .defect-legend {
   position: absolute;
   bottom: 105px;
@@ -85,10 +100,12 @@
 }
 
 .defect-marker.hotspot {
-  background: #ff0000;
+  background: #ff3333;
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.5);
 }
 
 .defect-marker.porosity {
-  background: #ffff00;
+  background: #ffdd00;
+  box-shadow: 0 0 4px rgba(255, 170, 0, 0.5);
 }
 
