@@ -1,0 +1,209 @@
+.control-panel {
+  width: 300px;
+  background: #ffffff;
+  padding: 1.25rem;
+  overflow-y: auto;
+  border-right: 1px solid #d0d7de;
+}
+
+.control-panel h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid #d0d7de;
+  padding-bottom: 0.65rem;
+  color: #1a3a5c;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.control-section {
+  margin-bottom: 2rem;
+}
+
+.control-section h3 {
+  font-size: 0.75rem;
+  margin-bottom: 0.65rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.file-button,
+.run-button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.file-button {
+  background: #1a3a5c;
+  color: white;
+}
+
+.file-button:hover:not(:disabled) {
+  background: #2c5282;
+  box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
+}
+
+.file-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-progress {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.control-section select {
+  width: 100%;
+  padding: 0.65rem;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #2c3e50;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.control-section select:focus {
+  outline: none;
+  border-color: #1a3a5c;
+  box-shadow: 0 0 0 2px rgba(26, 58, 92, 0.1);
+}
+
+.control-section select option {
+  background: #ffffff;
+  color: #2c3e50;
+}
+
+.material-info {
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  border: 1px solid #e9ecef;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+}
+
+.info-row span:first-child {
+  color: #6c757d;
+}
+
+.info-row span:last-child {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.temperature-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.temperature-control input[type="range"] {
+  flex: 1;
+  height: 4px;
+  background: #d0d7de;
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.temperature-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #1a3a5c;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.temperature-control input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #1a3a5c;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.temperature-display {
+  font-size: 0.95rem;
+  font-weight: 600;
+  min-width: 65px;
+  text-align: right;
+  color: #1a3a5c;
+}
+
+.temperature-hint {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.run-button {
+  background: #1a3a5c;
+  color: white;
+}
+
+.run-button:hover:not(:disabled) {
+  background: #2c5282;
+  box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
+}
+
+.run-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #6c757d;
+}
+
+.run-button.simulating {
+  background: #2c5282;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.info-box {
+  padding: 0.85rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #1a3a5c;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #6c757d;
+  border: 1px solid #e9ecef;
+  border-left: 3px solid #1a3a5c;
+}
+
+.info-box strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #1a3a5c;
+  font-weight: 600;
+}
+

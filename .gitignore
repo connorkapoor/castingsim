@@ -1,0 +1,34 @@
+# Python
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.env
+.venv
+backend/venv/
+
+# Node
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# OS/Editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Builds
+frontend/build/
+backend/results/*.json
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Docker
+*.pid
+

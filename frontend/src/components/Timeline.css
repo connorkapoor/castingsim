@@ -1,0 +1,88 @@
+.timeline {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.85rem 1.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #d0d7de;
+  min-width: 420px;
+}
+
+.play-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #d0d7de;
+  background: #1a3a5c;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.play-button:hover {
+  background: #2c5282;
+  box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
+}
+
+.timeline-slider {
+  flex: 1;
+}
+
+.timeline-slider input[type="range"] {
+  width: 100%;
+  height: 4px;
+  background: #d0d7de;
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.timeline-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #1a3a5c;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.timeline-slider input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #1a3a5c;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.timeline-info {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: #6c757d;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
